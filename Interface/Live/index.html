@@ -1,0 +1,189 @@
+<html> 
+<head> 
+	<title>NetView</title>
+
+	<script src="../js/three.min.js"></script>
+	<script src="../js/OrbitControls.js"></script>
+	<script src="../js/prototype.js"></script>
+	<script src="../js/materials/NV_Colors.js"></script>
+	<script src="../js/functions/NV_Degree.js"></script>
+
+	<script src="../js/coordinates/NV_Coordinates.js"></script>
+	<script src="../js/coordinates/NV_FloorsGeometry.js"></script>
+	<script src="../js/coordinates/NV_FloorsPosition.js"></script>
+	<script src="../js/coordinates/NV_LinesGeometry.js"></script>
+	<script src="../js/coordinates/NV_SpriteCoordinates.js"></script>
+
+	<script src="../js/functions/NV_ObjectsAdd.js"></script>
+	<script src="../js/functions/NV_ObjectsHide.js"></script>
+	<script src="../js/functions/NV_ObjectsShow.js"></script>
+	<script src="../js/functions/NV_ObjectsCheck.js"></script>
+
+	<script src="../js/functions/NV_LinesHide.js"></script>
+	<script src="../js/functions/NV_LinesShow.js"></script>
+
+	<script src="../js/functions/NV_FloorsAdd.js"></script>
+	<script src="../js/functions/NV_FloorsHide.js"></script>
+	<script src="../js/functions/NV_FloorsShow.js"></script>
+	<script src="../js/functions/NV_FloorsCheck.js"></script>
+
+	<script src="../js/functions/NV_MakeSprite.js"></script>
+
+	<script src="../js/functions/NV_Update.js"></script>
+	<script src="../js/functions/NV_ColorsCheck.js"></script>
+	<script src="../js/functions/NV_Resize.js"></script>
+	<script src="../js/functions/NV_Uncheck.js"></script>
+
+	<style>
+		canvas { 
+			-moz-box-sizing: border-box;
+			margin-top:-8px;
+			margin-left:-8px;
+			margin-bottom: -8px;
+		}
+		body {
+			overflow:hidden;
+			font-family: Arial;
+			font-size: 12px;
+		}
+		div#leftbox{
+			position: fixed;
+			font-family: Consolas;
+			top: 0px;
+			left: 0px;
+			width: 300px;
+			height: 100%;
+			background-color: rgba(46, 141, 123, 0.3);
+			border-right: 1px solid rgba(46, 141, 123, 0.6);
+			color: white;
+		}
+		hr{
+			border: none;
+			border-top: 1px solid rgba(46, 141, 123, 0.6);
+			width: 90%;
+		}
+		.cb1{
+			padding-left: 15px;
+			font-size: 15px;
+		}
+		.cb2{
+			padding-left: 15px; // 55px
+		}
+	</style> 
+</head> 
+<body onload="uncheck()">
+	<script type="text/javascript">
+
+		// Init
+		var scene = new THREE.Scene(); 
+		var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 ); 
+		var renderer = new THREE.WebGLRenderer( { antialias: true } ); renderer.setSize( window.innerWidth, window.innerHeight); 
+		renderer.setClearColor( 0x111515, 1);
+		var loader = new THREE.JSONLoader();
+		renderer.domElement.id="three";
+		document.body.appendChild( renderer.domElement );
+
+		var focus = new THREE.Vector3( 0,3,0 );
+		var clock = new THREE.Clock();
+
+		// Camera Focus
+		//camera.position.set(-10, 7, -15);
+		//camera.position.set(3, 11, 2);
+		camera.position.set(0, 11, 0);
+		camera.lookAt(focus);
+
+		// Controlls
+		controls = new THREE.OrbitControls( camera, renderer.domElement );
+				controls.target = new THREE.Vector3( 0, 0, 0 );
+				controls.update();
+		//controls.target = focus;
+	
+		// Light
+		var light = new THREE.PointLight(0xffffff);
+			light.position.set(-100,200,100);
+			scene.add(light);
+
+		var light = new THREE.PointLight(0xffffff);
+			light.position.set(-100,-200,100);
+			scene.add(light);
+
+		// Ground
+		var gGeo = new THREE.BoxGeometry(15,0.1,15);
+		var gMat = new THREE.MeshLambertMaterial( { color: 0x222222, transparent: true, opacity: 1.0 } );
+		var ground = new THREE.Mesh( gGeo, gMat );
+		ground.position.y=-0.5;
+		//scene.add( ground );
+
+/*function animateAPs(floor){
+	for(var a = 0; a < Dev[floor]['ap'].length; a++){
+		if(Dev[floor]['ap'][a] != null){
+			if(Dev[floor]['ap'][a].material.opacity> 0){
+				Dev[floor]['ap'][a].material.opacity -= 0.01;
+				Dev[floor]['ap'][a].scale.x += 0.06;
+				Dev[floor]['ap'][a].scale.y += 0.06;
+				Dev[floor]['ap'][a].scale.z += 0.06;
+			}
+			else{
+				Dev[floor]['ap'][a].scale.set(1,1,1);
+				Dev[floor]['ap'][a].material.opacity = 0.8;
+			}
+		}
+	}
+} */
+
+		initRooms();
+		initLines();
+		initObjects();
+		updateData();
+
+
+		// Render
+		var render = function() { 
+			requestAnimationFrame(render);
+			renderer.render(scene, camera);
+			//animateAPs('EG');
+			//animateAPs('S1');
+			//animateAPs('S2');
+			//hideFloor("S2");
+
+		}; render();
+
+	</script> 
+
+	<div id="leftbox">
+		<!--<h3>Etagen ein-/ausblenden</h3>
+		<hr>-->
+		<p class="cb1"><input type="checkbox" id="floor_S2" onclick="checkFloor('S2')"><b> 2. Stock</b></p>
+		<p class="cb2">
+			<input type="checkbox" id="objects_S2" onclick="checkObjects('S2')"> Devices
+			<!--<input type="checkbox" id="description_S2" onclick="checkDescription('S2')"> Bezeichnungen-->
+			<input type="checkbox" id="number_S2" onclick="checkNumber('S2')"> Werte
+		</p>
+		<hr>
+		<p class="cb1"><input type="checkbox" id="floor_S1" onclick="checkFloor('S1')"><b> 1. Stock</b></p>
+		<p class="cb2">
+			<input type="checkbox" id="objects_S1" onclick="checkObjects('S1')"> Devices
+			<!--<input type="checkbox" id="description_S1" onclick="checkDescription('S1')"> Bezeichnungen-->
+			<input type="checkbox" id="number_S1" onclick="checkNumber('S1')"> Werte</p>
+		<hr>
+		<p class="cb1"><input type="checkbox" id="floor_ME" onclick="checkFloor('ME')"><b> Mezzanin</b></p>
+		<p class="cb2">
+			<input type="checkbox" id="objects_ME" onclick="checkObjects('ME')"> Devices
+			<!--<input type="checkbox" id="description_ME" onclick="checkDescription('ME')"> Bezeichnungen-->
+			<input type="checkbox" id="number_ME" onclick="checkNumber('ME')"> Werte</p>
+		<hr>
+		<p class="cb1"><input type="checkbox" id="floor_AU" onclick="checkFloor('AU')"><b> Aula</b></p>
+		<p class="cb2">
+			<input type="checkbox" id="objects_AU" onclick="checkObjects('AU')"> Devices
+			<!--<input type="checkbox" id="description_AU" onclick="checkDescription('AU')"> Bezeichnungen-->
+			<input type="checkbox" id="number_AU" onclick="checkNumber('AU')"> Werte</p>
+		<hr>
+		<p class="cb1"><input type="checkbox" id="floor_EG" onclick="checkFloor('EG')"><b> Erdgeschoss</b></p>
+		<p class="cb2">
+			<input type="checkbox" id="objects_EG" onclick="checkObjects('EG')"> Devices
+			<!--<input type="checkbox" id="description_EG" onclick="checkDescription('EG')"> Bezeichnungen-->
+			<input type="checkbox" id="number_EG" onclick="checkNumber('EG')"> Werte</p>
+		<hr>
+	</div>
+</body> 
+</html>

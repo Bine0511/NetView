@@ -1,0 +1,334 @@
+<html> 
+<head> 
+	<title>NetView</title>
+
+	<script src="../js/three.min.js"></script>
+	<script src="../js/jquery.min.js"></script>
+	<script src="../js/jquery-ui.min.js"></script>
+	<!--<script src="../js/jquery-ui-slider-pips.js"></script>-->
+	<script src="../js/OrbitControls.js"></script>
+	<script src="../js/prototype.js"></script>
+	<script src="../js/materials/NV_Colors.js"></script>
+	<script src="../js/functions/NV_Degree.js"></script>
+
+	<script src="../js/coordinates/NV_Coordinates.js"></script>
+	<script src="../js/coordinates/NV_FloorsGeometry.js"></script>
+	<script src="../js/coordinates/NV_FloorsPosition.js"></script>
+	<script src="../js/coordinates/NV_LinesGeometry.js"></script>
+	<script src="../js/coordinates/NV_SpriteCoordinates.js"></script>
+
+	<script src="../js/functions/NV_ObjectsAdd.js"></script>
+	<script src="../js/functions/NV_ObjectsHide.js"></script>
+	<script src="../js/functions/NV_ObjectsShow.js"></script>
+	<script src="../js/functions/NV_ObjectsCheck.js"></script>
+
+	<script src="../js/functions/NV_LinesAdd.js"></script>
+	<script src="../js/functions/NV_LinesHide.js"></script>
+	<script src="../js/functions/NV_LinesShow.js"></script>
+
+	<script src="../js/functions/NV_FloorsAdd.js"></script>
+	<script src="../js/functions/NV_FloorsHide.js"></script>
+	<script src="../js/functions/NV_FloorsShow.js"></script>
+	<script src="../js/functions/NV_FloorsCheck.js"></script>
+
+	<script src="../js/functions/NV_MakeSprite.js"></script>
+
+	<script src="../js/functions/NV_Update.js"></script>
+	<script src="../js/functions/NV_ColorsCheck.js"></script>
+	<script src="../js/functions/NV_Resize.js"></script>
+	<script src="../js/functions/NV_Uncheck.js"></script>
+
+	<link rel="stylesheet" href="../css/jquery-ui.min.css">
+	<link rel="stylesheet" href="../css/jquery-ui.structure.min.css">
+	<link rel="stylesheet" href="../css/jquery-ui.theme.min.css">
+	<!--<link rel="stylesheet" href="../css/jquery-ui-slider-pips.css">-->
+
+	<style>
+		canvas { 
+			-moz-box-sizing: border-box;
+			margin-top:-8px;
+			margin-left:-8px;
+			margin-bottom: -8px;
+		}
+		body {
+			overflow:hidden;
+			font-family: Arial;
+			font-size: 12px;
+		}
+		div#leftbox{
+			position: fixed;
+			font-family: Consolas;
+			top: 0px;
+			left: 0px;
+			width: 300px;
+			height: 100%;
+			background-color: rgba(46, 141, 123, 0.3);
+			border-right: 1px solid rgba(46, 141, 123, 0.6);
+			color: white;
+		}
+		hr{
+			border: none;
+			border-top: 1px solid rgba(46, 141, 123, 0.6);
+			width: 90%;
+		}
+		.cb1{
+			padding-left: 15px;
+			font-size: 15px;
+		}
+		.cb2{
+			padding-left: 15px; // 55px
+		}
+		div#sliders{
+			box-sizing: border-box;
+			padding: 20px;
+			position: absolute;
+			bottom: 0px;
+			margin-left: 293px;
+			height: 70px;
+			background-color: rgba(46, 141, 123, 0.1);
+			border-top: 1px solid rgba(46, 141, 123, 0.6);
+		}
+		#datepicker{
+			margin: auto;
+			width: 232px;
+			height: 191px;
+			margin-top: 18px;
+		}
+		#slide{
+			font-family: Consolas;
+			font-weight: bold;
+			font-size: 20px;
+			width: 60px;
+			text-align: right;
+			margin: auto;
+			color: white;
+		}
+	</style> 
+</head> 
+<body onload="uncheck()">
+	<div id="sliders">
+		<div id="slider" class="ui-slider"></div>
+		<div id="slide">0:00</div>
+	</div>
+	<script type="text/javascript">
+
+		// Init
+		var scene = new THREE.Scene(); 
+		var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 ); 
+		var renderer = new THREE.WebGLRenderer( { antialias: true } ); renderer.setSize( window.innerWidth, window.innerHeight); 
+		renderer.setClearColor( 0x111515, 1);
+		var loader = new THREE.JSONLoader();
+		renderer.domElement.id="three";
+		document.body.appendChild( renderer.domElement );
+
+		var focus = new THREE.Vector3( 0,3,0 );
+		var clock = new THREE.Clock();
+
+		// Camera Focus
+		//camera.position.set(-10, 7, -15);
+		//camera.position.set(3, 11, 2);
+		camera.position.set(0, 11, 0);
+		camera.lookAt(focus);
+
+		// Controlls
+		controls = new THREE.OrbitControls( camera, renderer.domElement );
+				controls.target = new THREE.Vector3( 0, 0, 0 );
+				controls.update();
+		//controls.target = focus;
+	
+		// Light
+		var light = new THREE.PointLight(0xffffff);
+			light.position.set(-100,200,100);
+			scene.add(light);
+
+		var light = new THREE.PointLight(0xffffff);
+			light.position.set(-100,-200,100);
+			scene.add(light);
+
+		// Ground
+		var gGeo = new THREE.BoxGeometry(15,0.1,15);
+		var gMat = new THREE.MeshLambertMaterial( { color: 0x222222, transparent: true, opacity: 1.0 } );
+		var ground = new THREE.Mesh( gGeo, gMat );
+		ground.position.y=-0.5;
+		//scene.add( ground );
+
+/*function animateAPs(floor){
+	for(var a = 0; a < Dev[floor]['ap'].length; a++){
+		if(Dev[floor]['ap'][a] != null){
+			if(Dev[floor]['ap'][a].material.opacity> 0){
+				Dev[floor]['ap'][a].material.opacity -= 0.01;
+				Dev[floor]['ap'][a].scale.x += 0.06;
+				Dev[floor]['ap'][a].scale.y += 0.06;
+				Dev[floor]['ap'][a].scale.z += 0.06;
+			}
+			else{
+				Dev[floor]['ap'][a].scale.set(1,1,1);
+				Dev[floor]['ap'][a].material.opacity = 0.8;
+			}
+		}
+	}
+} */
+
+		initRooms();
+		initLines();
+		initObjects();
+
+		// Render
+		var render = function() { 
+			requestAnimationFrame(render);
+			renderer.render(scene, camera);
+			//animateAPs('EG');
+			//animateAPs('S1');
+			//animateAPs('S2');
+
+		}; render();
+
+	</script> 
+
+	<div id="leftbox">
+		<p class="cb1"><input type="checkbox" id="floor_S2" onclick="checkFloor('S2')"><b> 2. Stock</b></p>
+		<p class="cb2">
+			<input type="checkbox" id="objects_S2" onclick="checkObjects('S2')"> Devices
+			<!--<input type="checkbox" id="description_S2" onclick="checkDescription('S2')"> Bezeichnungen-->
+			<input type="checkbox" id="number_S2" onclick="checkNumber('S2')"> Werte
+		</p>
+		<hr>
+		<p class="cb1"><input type="checkbox" id="floor_S1" onclick="checkFloor('S1')"><b> 1. Stock</b></p>
+		<p class="cb2">
+			<input type="checkbox" id="objects_S1" onclick="checkObjects('S1')"> Devices
+			<!--<input type="checkbox" id="description_S1" onclick="checkDescription('S1')"> Bezeichnungen-->
+			<input type="checkbox" id="number_S1" onclick="checkNumber('S1')"> Werte</p>
+		<hr>
+		<p class="cb1"><input type="checkbox" id="floor_ME" onclick="checkFloor('ME')"><b> Mezzanin</b></p>
+		<p class="cb2">
+			<input type="checkbox" id="objects_ME" onclick="checkObjects('ME')"> Devices
+			<!--<input type="checkbox" id="description_ME" onclick="checkDescription('ME')"> Bezeichnungen-->
+			<input type="checkbox" id="number_ME" onclick="checkNumber('ME')"> Werte</p>
+		<hr>
+		<p class="cb1"><input type="checkbox" id="floor_AU" onclick="checkFloor('AU')"><b> Aula</b></p>
+		<p class="cb2">
+			<input type="checkbox" id="objects_AU" onclick="checkObjects('AU')"> Devices
+			<!--<input type="checkbox" id="description_AU" onclick="checkDescription('AU')"> Bezeichnungen-->
+			<input type="checkbox" id="number_AU" onclick="checkNumber('AU')"> Werte</p>
+		<hr>
+		<p class="cb1"><input type="checkbox" id="floor_EG" onclick="checkFloor('EG')"><b> Erdgeschoss</b></p>
+		<p class="cb2">
+			<input type="checkbox" id="objects_EG" onclick="checkObjects('EG')"> Devices
+			<!--<input type="checkbox" id="description_EG" onclick="checkDescription('EG')"> Bezeichnungen-->
+			<input type="checkbox" id="number_EG" onclick="checkNumber('EG')"> Werte</p>
+		<hr>
+		<div id="datepicker"></div>
+	</div>
+	<script type="text/javascript">
+		jQuery('#sliders').css('width', '100%').css('width', '-=291px');
+		jQuery(window).resize(function(){jQuery('#sliders').css('width', '100%').css('width', '-=291px');});
+
+		var date = new Date((new Date()).setHours(0, 0, 0, 0)).getTime(), slider_value = 0;
+
+		// initial ajax request
+		new Ajax.Request( '../Timeline.php', {
+			method:'get',
+			parameters: {timestamp: slider_value*60+date},
+			onSuccess: function(transport) {
+				var response = transport.responseText || "no response text";
+				var stats = JSON.parse(response);
+				for(i = 0; i < stats.length; i++){
+					if(xyz[stats[i].geraete_id] != undefined){
+						createDev(xyz[stats[i].geraete_id],stats[i].device, stats[i].geraete_id);
+						if(line[stats[i].geraete_id+"-"+stats[i].ziel_id] !=undefined){
+							Lines[xyz[stats[i].geraete_id][3]].push(stats[i].geraete_id+"-"+stats[i].ziel_id);
+							line[stats[i].geraete_id+"-"+stats[i].ziel_id].material = colorchecker((stats[i].in+stats[i].out)/2);
+							scene.add(line[stats[i].geraete_id+"-"+stats[i].ziel_id]);
+						}
+					}
+				}
+			},
+			onFailure: function() { alert('Something went wrong...'); }
+		});
+
+
+		// Datepicker
+		jQuery( "#datepicker" ).datepicker({
+			onSelect: function(d,i){
+				if(d !== i.lastVal){
+					jQuery(this).change();
+				}
+			}
+		});
+		// Change
+		jQuery('#datepicker').change(function(){
+			date  = jQuery('#datepicker').datepicker('getDate').getTime();
+			new Ajax.Request( '../Timeline.php', {
+				method:'get',
+				parameters: {timestamp: slider_value*60+date},
+				onSuccess: function(transport) {
+					var response = transport.responseText || "no response text";
+					var stats = JSON.parse(response);
+					for(i = 0; i < stats.length; i++){
+						if(line[stats[i].geraete_id+"-"+stats[i].ziel_id] !=undefined){
+							line[stats[i].geraete_id+"-"+stats[i].ziel_id].material = colorchecker((stats[i].in+stats[i].out)/2);
+							if(spl[stats[i].geraete_id+"-"+stats[i].ziel_id] != undefined ){
+								scene.remove(sprite[stats[i].geraete_id+"-"+stats[i].ziel_id]);
+								if(document.getElementById("number_"+spl[stats[i].geraete_id+"-"+stats[i].ziel_id][3]).checked){
+									console.log("number_"+spl[stats[i].geraete_id+"-"+stats[i].ziel_id][3]);
+									makeTextSprite(stats[i].geraete_id+"-"+stats[i].ziel_id, (stats[i].in+stats[i].out)/2);
+								}
+							}
+						}
+					}
+				},
+				onFailure: function() { alert('Something went wrong...'); }
+			});
+		});
+
+		// Slider
+		jQuery("#slider").slider({
+			value: 1,
+			range: "min",
+			min: 0,
+			max: 1440,
+			step: 10,
+			slide: function (event, ui) {
+				slider_value = ui.value*60;
+				// in hh:mm anzeigen 
+				var hours = Math.floor( slider_value / 60 / 60);          
+				var minutes = (slider_value / 60) % 60;
+				if (minutes == 0){minutes = "00";}
+				jQuery("#slide").html(hours+":"+minutes);
+				//console.log(hours+":"+minutes);
+			}
+		});
+
+		// Change
+		jQuery(function() {
+			jQuery( "#slider" ).slider({
+				change:function() {
+
+					new Ajax.Request( '../Timeline.php', {
+						method:'get',
+						parameters: {timestamp: slider_value*60+date},
+						onSuccess: function(transport) {
+							var response = transport.responseText || "no response text";
+							var stats = JSON.parse(response);
+							for(i = 0; i < stats.length; i++){
+								if(line[stats[i].geraete_id+"-"+stats[i].ziel_id] !=undefined){
+									line[stats[i].geraete_id+"-"+stats[i].ziel_id].material = colorchecker((stats[i].in+stats[i].out)/2);
+									if(spl[stats[i].geraete_id+"-"+stats[i].ziel_id] != undefined ){
+										scene.remove(sprite[stats[i].geraete_id+"-"+stats[i].ziel_id]);
+										if(document.getElementById("number_"+spl[stats[i].geraete_id+"-"+stats[i].ziel_id][3]).checked){
+											console.log("number_"+spl[stats[i].geraete_id+"-"+stats[i].ziel_id][3]);
+											makeTextSprite(stats[i].geraete_id+"-"+stats[i].ziel_id, (stats[i].in+stats[i].out)/2);
+										}
+									}
+								}
+							}
+						},
+						onFailure: function() { alert('Something went wrong...'); }
+					});
+				}
+			});
+		});
+
+	</script>
+</body> 
+</html>
